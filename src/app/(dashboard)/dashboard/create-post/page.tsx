@@ -62,7 +62,11 @@ export default function CreatePostPage() {
   }
 
   const createPostHandler = async () => {
-    if (!title.trim() || !paragraph.trim() || !imageLink.trim()) {
+
+    const imageFile = fileInputRef.current?.files?.[0]
+
+
+    if (!title.trim() || !paragraph.trim() || (!imageLink.trim() && !imageFile)) {
       toast.error("Please fill all the fields")
       return
     }
@@ -70,6 +74,20 @@ export default function CreatePostPage() {
     setLoading(true)
 
     try {
+
+      let imageUrl = imageLink
+
+      // only upload if user chose a file
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append("image", imageFile)
+        const { url } = await fetch("/api/upload", {
+          method: "POST",
+          body: formData
+        }).then(res => res.json())
+        imageUrl = url
+      }
+
       const response = await fetch("/api/post", {
         method: "POST",
         headers: {
@@ -78,7 +96,7 @@ export default function CreatePostPage() {
         body: JSON.stringify({
           title,
           content: paragraph,
-          image: imageLink,
+          image: imageUrl,
         }),
       })
 
@@ -93,6 +111,7 @@ export default function CreatePostPage() {
       setParagraph("")
       setImagePreview(null)
       setImageLink("")
+      if (fileInputRef.current) fileInputRef.current.value = ""
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong")
     } finally {

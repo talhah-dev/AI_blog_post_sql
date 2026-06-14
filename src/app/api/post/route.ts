@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
 
         const profile = await db.select().from(Profile).where(eq(Profile.email, session.user.email)).limit(1);
 
+
         if (!profile[0]) {
             return NextResponse.json({ message: "Profile not found for this account" }, { status: 404 });
         }
