@@ -1,3 +1,4 @@
+"use client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,11 +16,72 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Spinner } from "./ui/spinner"
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (!name || !email || !password) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters long')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+
+      const res = await fetch('/api/sign-up', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      })
+      
+      const data = await res.json()
+
+      if (res.ok) {
+        toast.success(data.message || 'Account created successfully!')
+        setName('')
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+      } else {
+        toast.error(data.message || 'Something went wrong')
+      }
+
+    } catch (error) {
+      toast.error('Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+
+  }
+
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -30,15 +92,17 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input id="name" type="text" placeholder="John Doe" required />
+                <Input value={name} onChange={(e) => setName(e.target.value)} id="name" type="text" placeholder="John Doe" required />
               </Field>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   id="email"
                   type="email"
                   placeholder="m@example.com"
@@ -49,13 +113,13 @@ export function SignupForm({
                 <Field className="grid grid-cols-2 gap-4">
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" placeholder="••••••••" type="password" required />
+                    <Input value={password} onChange={(e) => setPassword(e.target.value)} id="password" placeholder="••••••••" type="password" required />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirm-password">
                       Confirm Password
                     </FieldLabel>
-                    <Input id="confirm-password" placeholder="••••••••" type="password" required />
+                    <Input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} id="confirm-password" placeholder="••••••••" type="password" required />
                   </Field>
                 </Field>
                 <FieldDescription>
@@ -63,7 +127,7 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit">Create Account</Button>
+                <Button type="submit">{loading ? <Spinner /> : 'Create Account'}</Button>
                 <Button variant="outline" type="button">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path

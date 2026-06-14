@@ -20,8 +20,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { authClient } from "@/lib/auth-client"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export function NavUser({
   user,
@@ -33,6 +36,23 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login");
+          setLoading(false);
+        },
+      },
+    });
+
+
+  }
 
   return (
     <SidebarMenu>
@@ -48,9 +68,9 @@ export function NavUser({
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{loading ? "Logging out..." : user.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {user.email}
+                  {loading ? "" : user.email}
                 </span>
               </div>
               <EllipsisVerticalIcon className="ml-auto size-4" />
@@ -94,10 +114,10 @@ export function NavUser({
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
               <LogOutIcon
               />
-              Log out
+              {loading ? "Logging out..." : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

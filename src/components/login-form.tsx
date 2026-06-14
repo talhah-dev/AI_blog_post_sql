@@ -1,3 +1,4 @@
+"use client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,11 +17,61 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { authClient } from "@/lib/auth-client"
+import { Spinner } from "./ui/spinner"
+import { useRouter } from "next/navigation"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false);
+
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (!email || !password) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { data, error } = await authClient.signIn.email({
+        email,
+        password,
+        rememberMe: true,
+        callbackURL: "/dashboard",
+      });
+
+      console.log(data);
+
+
+      if (error) {
+        toast.error(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (!error) {
+        toast.success("Logged in successfully!")
+        setLoading(false)
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to log in";
+      toast.error(message);
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -31,7 +82,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
                 <Button variant="outline" type="button">
@@ -50,6 +101,8 @@ export function LoginForm({
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   id="email"
                   type="email"
                   placeholder="m@example.com"
@@ -66,10 +119,10 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" id="password" type="password" required />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit">{loading ? <Spinner /> : 'Login'}</Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <Link href="/signup">Sign up</Link>
                 </FieldDescription>
