@@ -21,6 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import Link from "next/link"
 
 export function NavUser({
   user,
@@ -77,16 +78,20 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <CircleUserRoundIcon
-                />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon
-                />
-                Notifications
-              </DropdownMenuItem>
+              <Link href="/dashboard/settings" className="">
+                <DropdownMenuItem>
+                  <CircleUserRoundIcon
+                  />
+                  Account Settings
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/dashboard/notifications" >
+                <DropdownMenuItem>
+                  <BellIcon
+                  />
+                  Notifications
+                </DropdownMenuItem>
+              </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
@@ -97,6 +102,6 @@ export function NavUser({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-    </SidebarMenu>
+    </SidebarMenu >
   )
 }
