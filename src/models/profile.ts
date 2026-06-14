@@ -7,5 +7,5 @@ export const Profile = pgTable("profile", {
     image: text("image"),
     bio: text("bio"),
     role: text("role").default("user"),
-    isPublic: boolean("isPublic").default(true),
+    isPublic: boolean("is_Public").default(true),
 })

@@ -21,6 +21,7 @@ import {
   SendIcon,
   FileEditIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CreatePostPage() {
   const [title, setTitle] = React.useState("")
@@ -29,6 +30,7 @@ export default function CreatePostPage() {
   const [imageLink, setImageLink] = React.useState("")
   const [isGeneratingTitle, setIsGeneratingTitle] = React.useState(false)
   const [isGeneratingParagraph, setIsGeneratingParagraph] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -57,6 +59,46 @@ export default function CreatePostPage() {
       "Artificial intelligence is rapidly changing the way we create, distribute, and consume content. From automated writing assistants to smart SEO optimization tools, AI-powered platforms are enabling creators to produce high-quality blog posts in a fraction of the time. As these technologies continue to evolve, content teams that embrace AI will find themselves with a significant competitive advantage in an increasingly crowded digital landscape."
     )
     setIsGeneratingParagraph(false)
+  }
+
+  const createPostHandler = async () => {
+    if (!title.trim() || !paragraph.trim() || !imageLink.trim()) {
+      toast.error("Please fill all the fields")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await fetch("/api/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          content: paragraph,
+          image: imageLink,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create post")
+      }
+
+      toast.success(data.message)
+      setTitle("")
+      setParagraph("")
+      setImagePreview(null)
+      setImageLink("")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+
   }
 
   return (
@@ -227,12 +269,12 @@ export default function CreatePostPage() {
         <Separator />
 
         <div className="flex items-center justify-between">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" >
             Save as Draft
           </Button>
-          <Button size="sm" className="gap-1.5">
+          <Button onClick={createPostHandler} className="gap-1.5">
             <SendIcon className="size-3.5" />
-            Publish Post
+            {loading ? "Saving..." : "Publish"}
           </Button>
         </div>
       </div>
