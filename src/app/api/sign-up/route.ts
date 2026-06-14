@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { Profile } from "@/models/profile";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest, res: NextResponse) {
+export async function POST(req: NextRequest) {
     try {
 
         const body = await req.json();
@@ -27,9 +27,6 @@ export async function POST(req: NextRequest, res: NextResponse) {
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to create user"
 
-        return NextResponse.json(
-            { message },
-            { status: 500 }
-        );
+        return NextResponse.json({ message }, { status: 500 });
     }
 }
