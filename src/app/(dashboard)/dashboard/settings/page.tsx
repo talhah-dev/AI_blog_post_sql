@@ -48,19 +48,108 @@ import {
     TrashIcon,
     RefreshCwIcon,
 } from "lucide-react"
+import { toast } from "sonner"
+import { Spinner } from "@/components/ui/spinner"
+import { SettingsSkeleton } from "@/components/skeleton/SettingsSkeleton"
 
 export default function SettingsPage() {
     const [showCurrentPassword, setShowCurrentPassword] = React.useState(false)
     const [showNewPassword, setShowNewPassword] = React.useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
-    const [emailNotifications, setEmailNotifications] = React.useState(true)
-    const [publishAlerts, setPublishAlerts] = React.useState(true)
-    const [weeklyDigest, setWeeklyDigest] = React.useState(false)
-    const [aiSuggestions, setAiSuggestions] = React.useState(true)
-    const [autoSave, setAutoSave] = React.useState(true)
-    const [seoAnalysis, setSeoAnalysis] = React.useState(true)
     const [twoFactor, setTwoFactor] = React.useState(false)
-    const [publicProfile, setPublicProfile] = React.useState(true)
+    const [isPublic, setIsPublic] = React.useState<boolean>()
+    const [data, setData] = React.useState<{ name?: string; email?: string; bio?: string; role?: string; isPublic?: boolean } | null>(null)
+    const [name, setName] = React.useState("")
+    const [loading, setLoading] = React.useState(false)
+    const [original, setOriginal] = React.useState({ name: "", bio: "", isPublic: true })
+    const [saveLoading, setSaveLoading] = React.useState(false)
+    const [email, setEmail] = React.useState("")
+    const [bio, setBio] = React.useState("")
+
+
+    const GetProfileData = async () => {
+        setLoading(true)
+
+        try {
+
+            const response = await fetch("/api/profile", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+            const data = await response.json()
+            setData(data)
+
+
+        } catch (error) {
+            toast.error("Something went wrong")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    React.useEffect(() => {
+        GetProfileData()
+    }, [])
+
+    React.useEffect(() => {
+        if (data) {
+            setName(data.name ?? "")
+            setEmail(data.email ?? "")
+            setBio(data.bio ?? "")
+            setIsPublic(data.isPublic ?? true)
+            setOriginal({
+                name: data.name ?? "",
+                bio: data.bio ?? "",
+                isPublic: data.isPublic ?? true
+            })
+        }
+    }, [data])
+
+
+    if (loading) {
+        return <SettingsSkeleton />
+    }
+
+    const updateProfilehandler = async () => {
+
+        const hasChanges = name !== original.name ||
+            bio !== original.bio ||
+            isPublic !== original.isPublic
+
+        if (!hasChanges) {
+            toast.error("Please update at least one field")
+            return
+        }
+
+        try {
+            setSaveLoading(true)
+            const response = await fetch("/api/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name,
+                    bio,
+                    isPublic,
+                }),
+            })
+            const data = await response.json()
+            console.log(data)
+            if (data) {
+                toast.success(data.message)
+            } else {
+                toast.error("Something went wrong")
+            }
+
+        } catch (error) {
+            toast.error("Something went wrong")
+        } finally {
+            setSaveLoading(false)
+        }
+    }
 
     return (
         <div className="min-h-screen w-full bg-background">
@@ -121,27 +210,12 @@ export default function SettingsPage() {
 
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="first-name">First Name</Label>
-                                        <Input id="first-name" defaultValue="Admin" />
+                                        <Label htmlFor="name">Name</Label>
+                                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="last-name">Last Name</Label>
-                                        <Input id="last-name" defaultValue="User" />
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="email">Email Address</Label>
-                                    <Input id="email" type="email" defaultValue="admin@aiblog.com" />
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="username">Username</Label>
-                                    <div className="flex gap-2">
-                                        <Input id="username" defaultValue="admin" className="font-mono" />
-                                        <Badge variant="secondary" className="shrink-0 px-3 self-center">
-                                            Admin
-                                        </Badge>
+                                        <Label htmlFor="email">Email Address</Label>
+                                        <Input id="email" type="email" value={email} readOnly />
                                     </div>
                                 </div>
 
@@ -151,27 +225,19 @@ export default function SettingsPage() {
                                         id="bio"
                                         placeholder="Write a short bio about yourself..."
                                         className="resize-none min-h-24"
-                                        defaultValue="Managing the AI Blog platform and overseeing content creation and team performance."
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
                                     />
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="timezone">Timezone</Label>
-                                    <Select defaultValue="utc5">
-                                        <SelectTrigger id="timezone">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                <SelectItem value="utc-8">Pacific Time (UTC-8)</SelectItem>
-                                                <SelectItem value="utc-5">Eastern Time (UTC-5)</SelectItem>
-                                                <SelectItem value="utc0">UTC+0</SelectItem>
-                                                <SelectItem value="utc1">Central European (UTC+1)</SelectItem>
-                                                <SelectItem value="utc5">Pakistan Standard (UTC+5)</SelectItem>
-                                                <SelectItem value="utc8">China Standard (UTC+8)</SelectItem>
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="username">Role</Label>
+                                    <div className="flex gap-2">
+                                        <Input id="username" readOnly className="font-mono" />
+                                        <Badge variant="secondary" className="shrink-0 px-3 self-center">
+                                            {data?.role}
+                                        </Badge>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between rounded-lg border p-4">
@@ -181,11 +247,11 @@ export default function SettingsPage() {
                                             Allow others to view your profile page
                                         </p>
                                     </div>
-                                    <Switch checked={publicProfile} onCheckedChange={setPublicProfile} />
+                                    <Switch checked={isPublic} onCheckedChange={setIsPublic} />
                                 </div>
 
-                                <div className="flex justify-end">
-                                    <Button size="sm">Save Changes</Button>
+                                <div className="flex justify -end">
+                                    <Button onClick={updateProfilehandler} disabled={saveLoading} >{saveLoading ? <Spinner /> : "Save Profile"}</Button>
                                 </div>
                             </CardContent>
                         </Card>
