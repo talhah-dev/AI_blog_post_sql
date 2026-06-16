@@ -8,6 +8,13 @@
       "when": 1781417051929,
       "tag": "0000_mighty_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781576037483,
+      "tag": "0001_nifty_tana_nile",
+      "breakpoints": true
     }
   ]
 }

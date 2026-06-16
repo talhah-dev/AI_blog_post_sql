@@ -7,6 +7,7 @@ export const Post = pgTable("post", {
     content: text("content").notNull(),
     image: text("image").notNull(),
     profileId: integer("profile_id").notNull().references(() => Profile.id),
+    isPublished: text("is_published").default("published").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .$onUpdate(() => /* @__PURE__ */ new Date())
