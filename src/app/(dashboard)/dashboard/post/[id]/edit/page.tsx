@@ -1,0 +1,347 @@
+"use client"
+
+import * as React from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import {
+  FileEditIcon,
+  ImageIcon,
+  LinkIcon,
+  Loader2Icon,
+  SendIcon,
+  SparklesIcon,
+  UploadIcon,
+} from "lucide-react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+
+type Post = {
+  id: number
+  title: string
+  content: string
+  image: string
+}
+
+export default function EditPostPage() {
+  const params = useParams<{ id: string }>()
+  const router = useRouter()
+  const [loading, setLoading] = React.useState(true)
+  const [saving, setSaving] = React.useState(false)
+  const [title, setTitle] = React.useState("")
+  const [paragraph, setParagraph] = React.useState("")
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null)
+  const [imageLink, setImageLink] = React.useState("")
+  const [isGeneratingTitle, setIsGeneratingTitle] = React.useState(false)
+  const [isGeneratingParagraph, setIsGeneratingParagraph] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(`/api/post/${params.id}`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to load post")
+        }
+
+        const post: Post = data.post
+        setTitle(post.title)
+        setParagraph(post.content)
+        setImagePreview(post.image)
+        setImageLink(post.image)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Something went wrong")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (params.id) {
+      fetchPost()
+    }
+  }, [params.id])
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function handleImageLinkApply() {
+    if (imageLink.trim()) setImagePreview(imageLink.trim())
+  }
+
+  async function handleGenerateTitle() {
+    setIsGeneratingTitle(true)
+    await new Promise((r) => setTimeout(r, 1200))
+    setTitle("10 Ways AI Is Transforming the Future of Content Creation")
+    setIsGeneratingTitle(false)
+  }
+
+  async function handleGenerateParagraph() {
+    setIsGeneratingParagraph(true)
+    await new Promise((r) => setTimeout(r, 1500))
+    setParagraph(
+      "Artificial intelligence is rapidly changing the way we create, distribute, and consume content. From automated writing assistants to smart SEO optimization tools, AI-powered platforms are enabling creators to produce high-quality blog posts in a fraction of the time."
+    )
+    setIsGeneratingParagraph(false)
+  }
+
+  async function updatePostHandler() {
+    const imageFile = fileInputRef.current?.files?.[0]
+
+    if (!title.trim() || !paragraph.trim() || (!imageLink.trim() && !imageFile)) {
+      toast.error("Please fill all the fields")
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      let imageUrl = imageLink.trim()
+
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append("image", imageFile)
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        })
+        const uploadData = await uploadResponse.json()
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.message || "Failed to upload image")
+        }
+
+        imageUrl = uploadData.url
+      }
+
+      const response = await fetch(`/api/post/${params.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          content: paragraph,
+          image: imageUrl,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update post")
+      }
+
+      toast.success(data.message || "Post updated successfully")
+      router.push(`/dashboard/post/${params.id}`)
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2Icon className="size-4 animate-spin" />
+          <span className="text-sm">Loading post...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto w-full px-4 py-10 lg:px-6">
+      <div className="mb-8">
+        <div className="mb-1 flex items-center gap-2 text-muted-foreground text-sm">
+          <FileEditIcon className="size-4" />
+          <span>Admin</span>
+          <span>/</span>
+          <span>Edit Post</span>
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">Update Blog Post</h1>
+        <p className="mt-1 text-muted-foreground text-sm">
+          Change the title, content, or cover image for this post.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cover Image</CardTitle>
+            <CardDescription>Upload a file or paste an image URL.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="link">
+              <TabsList className="mb-4">
+                <TabsTrigger value="upload" className="gap-1.5">
+                  <UploadIcon className="size-3.5" />
+                  Upload
+                </TabsTrigger>
+                <TabsTrigger value="link" className="gap-1.5">
+                  <LinkIcon className="size-3.5" />
+                  Paste Link
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upload">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {imagePreview ? (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                    <img
+                      src={imagePreview}
+                      alt="Cover preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute right-3 bottom-3"
+                      onClick={() => {
+                        setImagePreview(null)
+                        if (fileInputRef.current) fileInputRef.current.value = ""
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40"
+                  >
+                    <ImageIcon className="size-8 opacity-40" />
+                    <div className="text-center text-sm">
+                      <span className="font-medium text-foreground">Click to upload</span>{" "}
+                      an image
+                      <p className="mt-0.5 text-xs">PNG, JPG, WEBP up to 10MB</p>
+                    </div>
+                  </button>
+                )}
+              </TabsContent>
+
+              <TabsContent value="link">
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://example.com/image.jpg"
+                      value={imageLink}
+                      onChange={(e) => setImageLink(e.target.value)}
+                    />
+                    <Button variant="outline" onClick={handleImageLinkApply}>
+                      Apply
+                    </Button>
+                  </div>
+                  {imagePreview && (
+                    <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                      <img
+                        src={imagePreview}
+                        alt="Cover preview"
+                        className="h-full w-full object-cover"
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="absolute right-3 bottom-3"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setImageLink("")
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Post Title</CardTitle>
+            <CardDescription>Write a heading or generate one with AI.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Input
+              placeholder="Enter your blog post title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-base"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit gap-1.5"
+              onClick={handleGenerateTitle}
+              disabled={isGeneratingTitle}
+            >
+              <SparklesIcon className="size-3.5" />
+              {isGeneratingTitle ? "Generating..." : "Generate Title with AI"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Post Content</CardTitle>
+            <CardDescription>Write your blog content or generate it with AI.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Textarea
+              placeholder="Start writing your blog post here..."
+              value={paragraph}
+              onChange={(e) => setParagraph(e.target.value)}
+              className="min-h-48 resize-y text-sm leading-relaxed"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit gap-1.5"
+              onClick={handleGenerateParagraph}
+              disabled={isGeneratingParagraph}
+            >
+              <SparklesIcon className="size-3.5" />
+              {isGeneratingParagraph ? "Generating..." : "Generate Content with AI"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Separator />
+
+        <div className="flex items-center justify-between">
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/post/${params.id}`}>Cancel</Link>
+          </Button>
+          <Button onClick={updatePostHandler} className="gap-1.5">
+            <SendIcon className="size-3.5" />
+            {saving ? "Updating..." : "Update Post"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -48,82 +48,7 @@ export const schema = z.object({
 
 type Post = z.infer<typeof schema>
 
-const columns: ColumnDef<Post>[] = [
-  {
-    accessorKey: "title",
-    header: "Title",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3">
-        <img
-          src={row.original.image}
-          alt={row.original.title}
-          className="size-8 rounded-md object-cover"
-        />
-        <span className="font-medium line-clamp-1 text-wrap">{row.original.title}</span>
-      </div>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "content",
-    header: "Content",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground line-clamp-2 text-wrap max-w-xs">
-        {row.original.content}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "isPublished",
-    header: "Status",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="px-1.5 text-muted-foreground">
-        {row.original.isPublished === "published" ? (
-          <CircleCheckIcon className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <FileTextIcon className="size-3.5" />
-        )}
-        {row.original.isPublished === "published" ? "Published" : "Draft"}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Published At",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {new Date(row.original.createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </span>
-    ),
-  },
-  {
-    id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-            size="icon"
-          >
-            <EllipsisVerticalIcon />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>View</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  },
-]
+
 
 export function DataTable() {
   const [postData, setPostData] = React.useState<Post[]>([])
@@ -147,6 +72,110 @@ export function DataTable() {
       setLoading(false)
     }
   }
+
+  const deletePostHandler = async (id: number) => {
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/post/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      if (res.ok) {
+        toast.success("Post deleted successfully")
+        fetchPosts()
+      } else {
+        toast.error("Something went wrong")
+      }
+    } catch (error) {
+      console.log(error)
+      toast.error("Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const columns: ColumnDef<Post>[] = [
+    {
+      accessorKey: "title",
+      header: "Title",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <img
+            src={row.original.image}
+            alt={row.original.title}
+            className="size-8 rounded-md object-cover"
+          />
+          <span className="font-medium line-clamp-1 text-wrap">{row.original.title}</span>
+        </div>
+      ),
+      enableHiding: false,
+    },
+    {
+      accessorKey: "content",
+      header: "Content",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground line-clamp-2 text-wrap max-w-xs">
+          {row.original.content}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "isPublished",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge variant="outline" className="px-1.5 text-muted-foreground">
+          {row.original.isPublished === "published" ? (
+            <CircleCheckIcon className="fill-green-500 dark:fill-green-400" />
+          ) : (
+            <FileTextIcon className="size-3.5" />
+          )}
+          {row.original.isPublished === "published" ? "Published" : "Draft"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Published At",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {new Date(row.original.createdAt).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+              size="icon"
+            >
+              <EllipsisVerticalIcon />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/post/${row.original.id}/edit`}>Edit</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/post/${row.original.id}`}>View</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => deletePostHandler(row.original.id)} variant="destructive">Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
 
   React.useEffect(() => {
     fetchPosts()

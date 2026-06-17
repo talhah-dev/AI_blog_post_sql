@@ -66,7 +66,7 @@ export default function TeamPage() {
         },
       })
       const data = await res.json()
-      setUsers(data|| [])
+      setUsers(data || [])
     } catch (error) {
       console.log(error)
     } finally {
